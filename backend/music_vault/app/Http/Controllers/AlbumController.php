@@ -39,12 +39,15 @@ class AlbumController extends Controller
 
 
         foreach ($incomingFields['tracks'] as $data) {
+        if ($data['position'] !== null && $data['song_title'] !== null && $data['artist'] !== null && $data['duration'] !== null) {
             $album->tracks()->create([
                 'position' => $data['position'],
                 'artist' => $data['artist'],
                 'song_title' => $data['song_title'],
                 'duration' => $data['duration'],
             ]);
+        }
+            
         }
         return redirect('/');
     }

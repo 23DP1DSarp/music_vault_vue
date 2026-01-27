@@ -10,6 +10,31 @@ const user = ref({
     email: '',
 });
 
+interface Track {
+  position: string
+  artist: string
+  song_title: string
+  duration: string
+  error?: string
+}
+
+const album = ref({
+  title: '',
+  author: '',
+  genre: '',
+  label: '',
+  release_date: '',
+  country: '',
+  notes: '',
+  cover: null as File | null
+})
+
+const tracks = ref<Track[]>([
+  { position: '', artist: '', song_title: '', duration: '' },
+  { position: '', artist: '', song_title: '', duration: '' },
+  { position: '', artist: '', song_title: '', duration: '' },
+  { position: '', artist: '', song_title: '', duration: '' }
+])
 
 const getUser = async () => {
     try {
@@ -33,6 +58,78 @@ const logout = async () => {
         window.location.href='/';
     }
 }
+
+
+
+const addTrack = () => {
+  tracks.value.push({
+    position: '',
+    artist: '',
+    song_title: '',
+    duration: ''
+  })
+}
+
+
+const handleFileChange = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  
+  if (file) {
+    album.value.cover = file;
+  }
+};
+
+const validateForm = (e: Event) => {
+  let hasErrors = false
+
+  tracks.value.forEach(track => {
+    const values = Object.values(track).filter(v => typeof v === 'string')
+    const anyFilled = values.some(v => v !== '')
+    const allFilled = values.every(v => v !== '')
+
+    track.error = undefined
+
+    if (anyFilled && !allFilled) {
+      track.error = 'Track is incomplete. Fill all fields or leave it empty.'
+      hasErrors = true
+    }
+  })
+
+  if (hasErrors) {
+    e.preventDefault()
+  } else {
+    submitForm();
+  }
+}
+
+
+const submitForm = async () => {
+  const formData = new FormData()
+
+  // Album fields
+  Object.entries(album.value).forEach(([key, value]) => {
+    if (value !== null) {
+      formData.append(key, value as any)
+    }
+  })
+
+  // Tracks
+  tracks.value.forEach((track, index) => {
+    formData.append(`tracks[${index}][position]`, track.position)
+    formData.append(`tracks[${index}][artist]`, track.artist)
+    formData.append(`tracks[${index}][song_title]`, track.song_title)
+    formData.append(`tracks[${index}][duration]`, track.duration)
+  })
+
+
+  const response = await axiosInstance.post('/add_album_with_tracks', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+
+  console.log(response.data);
+}
+
 
 getUser();
 </script>
@@ -75,28 +172,28 @@ getUser();
         <h1>Add Album</h1>
         <div id="form_wrapper">
         
-            <form id="add_album_with_tracks" action="/add_album_with_tracks" method="POST" enctype="multipart/form-data">
+            <form id="add_album_with_tracks" @submit.prevent="submitForm()" method="POST" enctype="multipart/form-data">
                 <div id="album_wrapper">
                     <div id="input_side">
                         <label>Title</label>
-                        <input class="album_input" name="title" type="text">
+                        <input class="album_input" name="title" type="text" v-model="album.title">
                         <label>Author</label>
-                        <input class="album_input" name="author" type="text">
+                        <input class="album_input" name="author" type="text" v-model="album.author">
                         <label>Genre</label>
-                        <input class="album_input" name="genre" type="text">
+                        <input class="album_input" name="genre" type="text" v-model="album.genre">
                         <label>Label</label>
-                        <input class="album_input" name="label" type="text">
+                        <input class="album_input" name="label" type="text" v-model="album.label">
                         <label>Date of release</label>
-                        <input class="album_input" name="release_date" type="date">
+                        <input class="album_input" name="release_date" type="date" v-model="album.release_date">
                         <label>Country</label>
-                        <input class="album_input" name="country" type="text">
+                        <input class="album_input" name="country" type="text" v-model="album.country">
                         <label>Notes</label>
-                        <input class="album_input" name="notes" type="textarea">
+                        <input class="album_input" name="notes" type="textarea" v-model="album.notes">
                     </div>
                         
                         <div id="album_cover_side">
                             <label>Cover</label>
-                            <input name="cover" type="file" accept="image/*">
+                            <input name="cover" type="file" accept="image/*" @change="handleFileChange">
                         </div>
                 </div>
             
@@ -109,35 +206,33 @@ getUser();
                         
                         <div id="track_list">
 
-                            <div class="track_info">
+                            <div v-for="(track, index) in tracks" :key="index" class="track_info">
                                 <div class="input_labels">
                                     <label>Track Nr.</label>
-                                    <input type="number" class="track_nr" name="tracks[{{ $i }}][position]">
+                                    <input type="number" class="track_nr" :name="`tracks[${index}][position]`" v-model="track.position">
                                 </div>
                                 <div class="input_labels">
                                     <label>Author</label>
-                                    <input type="text" class="author" name="tracks[{{ $i }}][artist]">
+                                    <input type="text" class="author" :name="`tracks[${index}][artist]`" v-model="track.artist">
                                 </div>
                                 <div class="input_labels">
                                     <label>Title</label>
-                                    <input type="text" class="title" name="tracks[{{ $i }}][song_title]">
+                                    <input type="text" class="title" :name="`tracks[${index}][title]`" v-model="track.song_title">
                                 </div>
                                 <div class="input_labels">
                                     <label>Duration</label>
-                                    <input type="text" class="duration" name="tracks[{{ $i }}][duration]">
+                                    <input type="text" class="duration" :name="`tracks[${index}][duration]`" v-model="track.duration">
+                                </div>
+                                <div class="error_box" v-if="track.error">
+                                  <p>{{ track.error }}</p>
                                 </div>
                             </div>
                         </div>
-                <p id="add_more_tracks">+ Add more tracks</p> 
+                <p id="add_more_tracks" @click="addTrack">+ Add more tracks</p> 
                 <input id="submit_btn" type="submit" value="Add Album">        
                 </form>
             </div> 
                 
-            
-        
-        @else
-        <h1>This page is only for registered users.</h1>
-        @endauth
     </main>
 
     <footer>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\Album;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AlbumController;
@@ -16,3 +17,6 @@ Route::get('/users', function(Request $request) {
 
 Route::post('/add_album_with_tracks', [AlbumController::class, 'addAlbum'])->name('add.album');
 
+Route::get('/', function () {
+    return Album::all();
+});

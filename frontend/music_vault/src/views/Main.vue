@@ -10,6 +10,27 @@ const user = ref({
     email: '',
 });
 
+const isLoggedIn = ref(false);
+
+interface Album {
+  title: string;
+  author: string;
+  release_date: Date;
+  genre: string;
+  cover: string;
+}
+
+const albums = ref<Album[]>([]);
+
+const getAlbums = async () => {
+  try {
+    const response = await axiosInstance.get('/');
+    albums.value = response.data;
+    console.log(response.data);
+  } catch (error) {
+    console.error(error);
+  }
+}
 
 const getUser = async () => {
     try {
@@ -18,7 +39,9 @@ const getUser = async () => {
         console.log(response.data);
     } catch (error) {
         console.error(error);
+        isLoggedIn.value = false;
     } finally {
+        isLoggedIn.value = true;
         loading.value = false;
     }
 };
@@ -34,11 +57,18 @@ const logout = async () => {
     }
 }
 
+const getImageUrl = (path: string): string => {
+  if (path.startsWith('http')) {
+    return path;
+  }
 
+  return `${'http://localhost:8000'}/storage/${path}`;
+};
 
 
 
 getUser();
+getAlbums();
 </script>
 
 <template>
@@ -58,7 +88,6 @@ getUser();
                 <li>Genres</li>
                 <li>Artists</li>
                 <li>Forums</li>
-                <li><RouterLink to="/add-album">Add Album</RouterLink></li>
             </ul>
         </div>
 
@@ -162,20 +191,24 @@ getUser();
         <div id="albums">
             <h2>All Albums</h2>
             <div id="album_cards">
-            <div></div>
-            <div>
-              <img>
-              
-              <p></p>
-              <div id="genre_and_year">
-                <p></p>
-                <p>&nbsp;•&nbsp;</p>
-                <p></p>
-              </div>
-            <p>No albums found.</p>
+            <div id="album_data" v-for="album in albums">
+                    
+                        <img v-if="album.cover"
+            :src="getImageUrl(album.cover)" 
+            :alt="album.title">
+                    
+                    <a href="/album_info/{{$album->id}}"><h3>{{ album.title }}</h3></a>
+                    <p>{{ album.author }}</p>
+                    <div id="genre_and_year">
+                    <p>{{ album.genre }}</p>
+                    <p>&nbsp;•&nbsp;</p>
+                    <p>{{ new Date(album.release_date).getFullYear()}}</p>
+                    </div>
+        </div>
             </div>
         </div>
-    </div>
+
+    
     </main>
 
     <footer>
@@ -256,15 +289,10 @@ getUser();
 </template>
 
 <style>
-@font-face {
-  font-family: Segoe UI Symbol;
-  src: url(/fonts/segoe-ui-symbol.ttf);
-}
-
 
 
 html {
-  font-family: Segoe UI Symbol, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
@@ -299,6 +327,7 @@ nav {
 #logo {
   display: flex;
   flex-direction: row;
+  align-items: center;
   gap: 5px;
   font-size: 19.53px;
   line-height: 28px;
@@ -317,7 +346,7 @@ nav {
   font-size: 14px;
 }
 
-#shoppingcart {
+#dark_mode_toggle {
   width: 16px;
   height: 16px;
   padding: 9px;
@@ -326,6 +355,19 @@ nav {
   border-radius: 8px;
   text-align: center;
   cursor: pointer;
+}
+
+.dark_mode {
+  background-color: #121212;
+  color: #E4E4E4;
+}
+
+#dark_mode_toggle {
+  background-color: #F3F3F5;
+}
+
+.nav_dark_mode {
+  color: #E4E4E4 !important;
 }
 
 #navbuttons {
@@ -379,20 +421,11 @@ main {
   flex-direction: column;
 }
 
-#order_items {
-  width: 0px;
-  height: 100%;
-  background-color: #2222b1;
-  z-index: 1;
-  position: absolute;
-  right: 0;
-  transition: 0.5s;
-}
-
 #hero_section {
   height: 485px;
   display: flex;
   flex-direction: row;
+  margin-top: 150px;
   margin-bottom: 150px;
 }
 
@@ -401,7 +434,6 @@ main {
   height: 360px;
   display: flex;
   flex-direction: column;
-  margin-top: 150px;
 }
 
 #left_side h1 {
@@ -494,12 +526,10 @@ main {
 #right_side {
   width: 728px;
   height: 486px;
-  margin-top: 150px;
 }
 
 #record_browse {
-  margin: 0;
-  margin-top: 150px;
+  margin-top: 20px;
 }
 
 #record_browse h4 {
@@ -523,6 +553,7 @@ main {
   display: flex;
   flex-direction: row;
   align-items: center;
+  gap: 10px;
 }
 
 #filters form {
@@ -532,11 +563,22 @@ main {
   gap: 10px;
 }
 
+#filters select {
+  width: 128px;
+  height: 36px;
+  background-color: #F3F3F5;
+  border-style: none;
+  border-radius: 8px;
+  font-family: Segoe UI Symbol, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0px;
+}
+
 #album_cards {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
   gap: 25px;
-  width: fit-content;
   margin-bottom: 50px;
 }
 
@@ -544,8 +586,9 @@ main {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 280px;
-  min-height: 470px;
+  width: 100%;
+  max-width: 358px;
+  height: 434px;
   border: solid #E4E4E4 1px;
   border-radius: 14px;
 }
@@ -576,26 +619,6 @@ main {
   flex-direction: row;
 }
 
-#add_to_collection {
-  margin: 0 auto;
-}
-
-
-#add_to_collection_btn {
-  width: 250px;
-  height: 40px;
-  background-color: #FFFFFF;
-  color: #0A0A0A;
-  font-size: 18px;
-  font-weight: normal;
-  line-height: 24px;
-  letter-spacing: 0px;
-  font-family: Segoe UI Symbol, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  border-radius: 8px;
-  border: solid 1px;
-  cursor: pointer;
-}
-
 .form_button {
   height: 32px;
   background-color: #FFFFFF;
@@ -612,31 +635,6 @@ main {
   cursor: pointer;
 }
 
-#filters select {
-  width: 128px;
-  height: 36px;
-  background-color: #F3F3F5;
-  border-style: none;
-  border-radius: 8px;
-  font-family: Segoe UI Symbol, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0px;
-}
-
-#album_cards {
-  display: flex;
-  flex-direction: row;
-  gap: 25px;
-}
-
-#album_data {
-  display: flex;
-  flex-direction: column;
-  width: 358px;
-  height: 434px;
-}
-
 footer {
   border-top: solid #ECECF0 1px;
 }
@@ -647,13 +645,19 @@ footer h6 {
   line-height: 24px;
 }
 
-#footer_wrapper {
+#footer_bottom {
   width: 80vw;
   margin: 0 auto;
   padding-left: 100px;
   padding-right: 100px;
-  padding-top: 50px;
-  padding-bottom: 50px;
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0px;
+  color: #717182;
 }
 
 
@@ -764,16 +768,6 @@ footer h6 {
   cursor: pointer;
 }
 
-#footer_bottom {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  font-size: 14px;
-  line-height: 20px;
-  letter-spacing: 0px;
-  color: #717182;
-  margin-top: 40px;
-}
 
 #footer_bottom ul {
   display: flex;
@@ -783,4 +777,8 @@ footer h6 {
   padding: 0;
 }
 
+path {
+  stroke: #ffffff;
+  fill: black;
+}
 </style>
