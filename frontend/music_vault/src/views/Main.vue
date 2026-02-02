@@ -36,12 +36,12 @@ const getUser = async () => {
     try {
         const response = await axiosInstance.get('/user');
         user.value = response.data;
+        isLoggedIn.value = true;
         console.log(response.data);
     } catch (error) {
         console.error(error);
         isLoggedIn.value = false;
     } finally {
-        isLoggedIn.value = true;
         loading.value = false;
     }
 };
@@ -88,6 +88,7 @@ getAlbums();
                 <li>Genres</li>
                 <li>Artists</li>
                 <li>Forums</li>
+                <RouterLink to="/add-album" v-if="isLoggedIn">Add Album</RouterLink>
             </ul>
         </div>
 
@@ -96,11 +97,11 @@ getAlbums();
             <input type="text" id="searchbar" name="recordsearch" placeholder="Search records...">
             <img id="shoppingcart" src="../images/nav_images/shopping_cart_icon.svg">
             <p>{{user?.name}}</p>
-            <form action="/logout" @submit.prevent="logout">
+            <form action="/logout" @submit.prevent="logout" v-if="isLoggedIn">
                 <button id="logoutbtn">Log out</button>
             </form>
-            <RouterLink to="/login">Log In</RouterLink>
-            <RouterLink to="/register">Sign Up</RouterLink>
+            <RouterLink to="/login" v-if="!isLoggedIn">Log In</RouterLink>
+            <RouterLink to="/register" v-if="!isLoggedIn">Sign Up</RouterLink>
         </div>
     </div>
     </nav>
@@ -344,6 +345,17 @@ nav {
   border-radius: 8px;
   font-family: Segoe UI Symbol, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 14px;
+}
+
+#shoppingcart {
+  width: 16px;
+  height: 16px;
+  padding: 9px;
+  border-style: solid;
+  border: #ECECF0 solid 1px;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
 }
 
 #dark_mode_toggle {
@@ -639,6 +651,15 @@ footer {
   border-top: solid #ECECF0 1px;
 }
 
+#footer_top {
+  width: 80vw;
+  margin: 0 auto;
+  padding-top: 50px;
+  padding-bottom: 20px;
+  display: flex;
+  flex-direction: row;
+}
+
 footer h6 {
   font-size: 16px;
   margin-top: 15px;
@@ -646,10 +667,9 @@ footer h6 {
 }
 
 #footer_bottom {
-  width: 80vw;
   margin: 0 auto;
-  padding-left: 100px;
-  padding-right: 100px;
+  padding-left: 150px;
+  padding-right: 150px;
   align-items: center;
   display: flex;
   flex-direction: row;
@@ -658,15 +678,7 @@ footer h6 {
   line-height: 20px;
   letter-spacing: 0px;
   color: #717182;
-}
-
-
-#footer_top {
-  display: flex;
-  flex-direction: row;
-  padding-bottom: 20px;
-  margin: 0 auto;
-  border-bottom: solid #ECECF0 1px;
+  border-top: solid #ECECF0 1px;
 }
 
 #footer_info {

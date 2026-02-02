@@ -18,7 +18,12 @@ class AlbumController extends Controller
             'country' => 'required',
             'cover' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
             'format' => 'nullable',
-            'notes' => 'nullable'
+            'notes' => 'nullable',
+            'tracks' => 'required|array|min:1',
+            'tracks.*.position' => 'required|integer',
+            'tracks.*.artist' => 'required|string',
+            'tracks.*.song_title' => 'required|string',
+            'tracks.*.duration' => 'required|string',
         ]);
 
        
@@ -32,11 +37,6 @@ class AlbumController extends Controller
         $incomingFields['genre'] = strip_tags($incomingFields['genre']);
 
         $album = Album::create($incomingFields);
-
-        $incomingFields = $request->validate([
-            'tracks' => 'required|array|min:1',
-        ]);
-
 
         foreach ($incomingFields['tracks'] as $data) {
         if ($data['position'] !== null && $data['song_title'] !== null && $data['artist'] !== null && $data['duration'] !== null) {

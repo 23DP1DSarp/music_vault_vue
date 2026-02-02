@@ -10,6 +10,8 @@ const user = ref({
     email: '',
 });
 
+const isLoggedIn = ref(false);
+
 interface Track {
   position: string
   artist: string
@@ -40,9 +42,11 @@ const getUser = async () => {
     try {
         const response = await axiosInstance.get('/user');
         user.value = response.data;
+        isLoggedIn.value = true;
         console.log(response.data);
     } catch (error) {
         console.error(error);
+        isLoggedIn.value = false;
     } finally {
         loading.value = false;
     }
@@ -81,12 +85,15 @@ const handleFileChange = (event: Event) => {
 };
 
 const validateForm = (e: Event) => {
+  console.log('Validating form...');
   let hasErrors = false
 
   tracks.value.forEach(track => {
-    const values = Object.values(track).filter(v => typeof v === 'string')
+    const values = Object.values(track).filter((v, i) => i < 4) as string[]
     const anyFilled = values.some(v => v !== '')
+    console.log('Track values:', values);
     const allFilled = values.every(v => v !== '')
+    console.log('Any filled:', anyFilled, 'All filled:', allFilled);
 
     track.error = undefined
 
@@ -97,7 +104,7 @@ const validateForm = (e: Event) => {
   })
 
   if (hasErrors) {
-    e.preventDefault()
+    e.preventDefault();
   } else {
     submitForm();
   }
@@ -122,12 +129,14 @@ const submitForm = async () => {
     formData.append(`tracks[${index}][duration]`, track.duration)
   })
 
-
-  const response = await axiosInstance.post('/add_album_with_tracks', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  })
-
-  console.log(response.data);
+  try {
+    const response = await axiosInstance.post('/add_album_with_tracks', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    console.log(response.data);
+    } catch (error) {
+    console.error(error);
+    }
 }
 
 
@@ -150,20 +159,18 @@ getUser();
                 <li>Genres</li>
                 <li>Artists</li>
                 <li>Forums</li>
-                <li><RouterLink to="/add-album">Add Album</RouterLink></li>
             </ul>
         </div>
 
         <div id="rightbuttons">
             
             <input type="text" id="searchbar" name="recordsearch" placeholder="Search records...">
-            <img id="shoppingcart" src="../images/nav_images/shopping_cart_icon.svg">
             <p>{{user?.name}}</p>
-            <form action="/logout" @submit.prevent="logout">
+            <form action="/logout" @submit.prevent="logout" v-if="isLoggedIn">
                 <button id="logoutbtn">Log out</button>
             </form>
-            <RouterLink to="/login">Log In</RouterLink>
-            <RouterLink to="/register">Sign Up</RouterLink>
+            <RouterLink to="/login" v-if="!isLoggedIn">Log In</RouterLink>
+            <RouterLink to="/register" v-if="!isLoggedIn">Sign Up</RouterLink>
         </div>
     </div>
     </nav>
@@ -172,7 +179,7 @@ getUser();
         <h1>Add Album</h1>
         <div id="form_wrapper">
         
-            <form id="add_album_with_tracks" @submit.prevent="submitForm()" method="POST" enctype="multipart/form-data">
+            <form id="add_album_with_tracks" @submit.prevent="validateForm($event)" method="POST" enctype="multipart/form-data">
                 <div id="album_wrapper">
                     <div id="input_side">
                         <label>Title</label>
@@ -207,6 +214,7 @@ getUser();
                         <div id="track_list">
 
                             <div v-for="(track, index) in tracks" :key="index" class="track_info">
+                                <div class="input_div">
                                 <div class="input_labels">
                                     <label>Track Nr.</label>
                                     <input type="number" class="track_nr" :name="`tracks[${index}][position]`" v-model="track.position">
@@ -222,6 +230,7 @@ getUser();
                                 <div class="input_labels">
                                     <label>Duration</label>
                                     <input type="text" class="duration" :name="`tracks[${index}][duration]`" v-model="track.duration">
+                                </div>
                                 </div>
                                 <div class="error_box" v-if="track.error">
                                   <p>{{ track.error }}</p>
@@ -520,6 +529,12 @@ label {
   gap: 30px;
 }
 
+.input_div {
+  display: flex;
+  flex-direction: row;
+  gap: 40px;
+}
+
 .input_labels {
  display: flex;
  flex-direction: column; 
@@ -540,8 +555,8 @@ label {
 
 .track_info {
   display: flex;
-  flex-direction: row;
-  gap: 40px;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .track_nr {

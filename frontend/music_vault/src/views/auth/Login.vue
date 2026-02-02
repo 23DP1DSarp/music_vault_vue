@@ -1,31 +1,36 @@
 <script setup lang="ts">
 import axiosInstance from '@/axios';
+import { ref } from 'vue';
 
 interface LoginForm {
     name: string;
     email: string;
     password: string;
     password_confirmation: string;
+    error?: string;
 }
 
 
-const form = <LoginForm>({
+const form = ref(<LoginForm>({
     email: '',
     password: '',
-});
+    error: '',
+}));
 
 
 const login = async (payload: LoginForm) => {
     console.log('Login function called');
-    await axiosInstance.get("/sanctum/csrf-cookie", {baseURL: 'http://localhost:8000',});
+    const authCookie = await axiosInstance.get("/sanctum/csrf-cookie", {baseURL: 'http://localhost:8000',});
     try {
     const response = await axiosInstance.post("/login", payload);
     console.log(response.data);
-} catch (error) {
+    if (response.status === 200) {
+        window.location.href = "/"
+    }
+    } catch (error) {
     console.error(error);
-}  finally {
-    window.location.href = "/"
-}
+    form.value.error = 'Login failed. Please check your credentials and try again.';
+    }
 };
 
 
@@ -47,7 +52,9 @@ const login = async (payload: LoginForm) => {
     <main>
             <h1>Log In</h1>
             <form id="sign_up_form" @submit.prevent="login(form)">
-                
+
+                <p v-if="form.error" style="color: red;">{{ form.error }}</p>
+
                 <div class="form_parts">
                     <label>Email</label>
                     <input email="email" type="text" v-model="form.email">
